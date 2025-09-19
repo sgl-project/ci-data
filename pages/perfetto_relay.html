@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Perfetto Trace Relay</title>
+    <style>
+        body { font-family: sans-serif; padding: 2em; }
+    </style>
+</head>
+<body>
+<h1>Perfetto Trace Relay</h1>
+<p id="status">Initializing...</p>
+
+<script>
+    (async () => {
+        const statusElement = document.getElementById('status');
+        const PERFETTO_UI_URL = 'https://ui.perfetto.dev';
+
+        /**
+         * Displays a final message on the relay page itself.
+         * @param {string} message The message to display.
+         * @param {boolean} isError If true, display as an error.
+         */
+        const setStatus = (message, isError = false) => {
+            console.log(message);
+            statusElement.textContent = message;
+            if (isError) {
+                statusElement.style.color = 'red';
+                console.error(message);
+            }
+        };
+
+        /**
+         * Establishes a handshake with the Perfetto UI window to ensure it's ready.
+         * The Perfetto UI will respond with 'PONG' when it receives a 'PING'.
+         * @param {Window} ui The window handle for the Perfetto UI.
+         * @returns {Promise<void>} A promise that resolves when the handshake is complete.
+         */
+        const establishHandshake = (ui) => {
+            return new Promise((resolve, reject) => {
+                let intervalId = null;
+                let timeoutId = null;
+
+                const cleanup = () => {
+                    clearInterval(intervalId);
+                    clearTimeout(timeoutId);
+                    window.removeEventListener('message', messageHandler);
+                };
+
+                const messageHandler = (event) => {
+                    if (event.source === ui && event.data === 'PONG') {
+                        cleanup();
+                        resolve();
+                    }
+                };
+
+                window.addEventListener('message', messageHandler);
+
+                // 1. Start pinging the UI
+                intervalId = setInterval(() => {
+                    // The try-catch is necessary because the UI window might be closed by the user.
+                    try {
+                        ui.postMessage('PING', PERFETTO_UI_URL);
+                    } catch (e) {
+                        // If postMessage fails, it's likely the window was closed.
+                        cleanup();
+                        reject(new Error('Perfetto UI window was closed before handshake could complete.'));
+                    }
+                }, 200);
+
+                // 2. Set a timeout for the handshake
+                timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Handshake with Perfetto UI timed out. The UI might not have loaded correctly.'));
+                }, 10000); // 10-second timeout
+            });
+        };
+
+        /**
+         * Fetches the trace file and posts it to the Perfetto UI.
+         * @param {Window} ui The window handle for the Perfetto UI.
+         * @param {string} srcUrl The URL of the trace file to fetch.
+         * @param {string | null} customTitle An optional title for the trace.
+         */
+        const fetchTraceAndPost = async (ui, srcUrl, customTitle) => {
+            // This fetch is executed on your domain, so it can handle auth/CORS/ACLs.
+            const response = await fetch(srcUrl, {
+                mode: 'cors',
+                credentials: 'omit', // Avoids "ACAO: * + credentials" error.
+                cache: 'no-store',   // Ensures the latest trace is always fetched.
+            });
+
+            if (!response.ok) {
+                const errorMsg = `Failed to load trace: ${response.status} ${response.statusText}`;
+                ui.postMessage({ perfetto: { title: errorMsg } }, PERFETTO_UI_URL);
+                throw new Error(errorMsg);
+            }
+
+            const buffer = await response.arrayBuffer();
+
+            // Determine a sensible title and filename for the trace.
+            const title = customTitle || srcUrl.split('/').pop() || 'trace';
+            const fileName = title.endsWith('.gz') || title.endsWith('.zip') ? title : `${title}.perfetto-trace`;
+
+            // Post the trace buffer to the Perfetto UI.
+            ui.postMessage({
+                perfetto: {
+                    buffer,
+                    title,
+                    fileName,
+                    // Keep the UI open after loading, useful for debugging.
+                    keepApiOpen: true,
+                }
+            }, PERFETTO_UI_URL, [buffer]); // Transfer the buffer for performance.
+        };
+
+
+        // --- Main Execution Logic ---
+        try {
+            const params = new URLSearchParams(location.search);
+            const src = params.get('src');
+            const title = params.get('title');
+
+            if (!src) {
+                throw new Error('Required "src" URL parameter is missing.');
+            }
+
+            setStatus('Opening Perfetto UI...');
+            const ui = window.open(PERFETTO_UI_URL);
+            if (!ui) {
+                throw new Error('Failed to open Perfetto UI. Please disable your popup blocker for this site.');
+            }
+
+            setStatus('Waiting for handshake with Perfetto UI...');
+            await establishHandshake(ui);
+
+            setStatus(`Fetching trace from ${src}...`);
+            await fetchTraceAndPost(ui, src, title);
+
+            setStatus('Trace successfully sent to Perfetto UI. You can now close this tab.');
+            // Optionally, close the relay window automatically.
+            // window.close();
+
+        } catch (error) {
+            setStatus(error.message, true);
+        }
+    })();
+</script>
+</body>
+</html>
