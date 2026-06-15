@@ -1,0 +1,166 @@
+{
+  "cases": {
+    "cutlass_mla_decode": {
+      "component": "CUTLASS MLA decode attention (TP=1, 128 heads)",
+      "higher_is_better": true,
+      "measurements": {
+        "batch_size=1,seq_len=1024": 53.699882609925716,
+        "batch_size=32,seq_len=4096": 2301.139676385459,
+        "batch_size=8,seq_len=2048": 507.295160924734
+      },
+      "metric": "GB/s",
+      "tags": ["mla", "attention", "decode"]
+    },
+    "dsv3_fused_a_gemm": {
+      "component": "MLA fused down-proj 'A' GEMM (7168x2112)",
+      "higher_is_better": true,
+      "measurements": {
+        "num_tokens=1": 5.9360354006740526,
+        "num_tokens=16": 80.32762797752778,
+        "num_tokens=8": 45.19291710237113
+      },
+      "metric": "TFLOPs",
+      "tags": ["mla", "gemm"]
+    },
+    "dsv3_router_gemm_bf16_out": {
+      "component": "MoE router GEMM, 256 experts, bf16 output",
+      "higher_is_better": true,
+      "measurements": {
+        "num_tokens=1": 1.8058617618005637,
+        "num_tokens=16": 7.976058872820607,
+        "num_tokens=8": 7.924331738413241
+      },
+      "metric": "TFLOPs",
+      "tags": ["moe", "gemm"]
+    },
+    "dsv3_router_gemm_float_out": {
+      "component": "MoE router GEMM, 256 experts, fp32 output",
+      "higher_is_better": true,
+      "measurements": {
+        "num_tokens=1": 1.8335955024595068,
+        "num_tokens=16": 7.995736831246482,
+        "num_tokens=8": 8.073174450105212
+      },
+      "metric": "TFLOPs",
+      "tags": ["moe", "gemm"]
+    },
+    "dsv4_q_norm_rope": {
+      "component": "Fused Q RMSNorm + RoPE",
+      "higher_is_better": false,
+      "measurements": {
+        "batch_size=1,num_heads=8,head_dim=192": 1.8401565723978908,
+        "batch_size=16,num_heads=8,head_dim=192": 1.847181802322682,
+        "batch_size=64,num_heads=16,head_dim=192": 1.9427043216716315
+      },
+      "metric": "us",
+      "tags": ["attention", "norm", "rope"]
+    },
+    "fp8_blockwise_gemm": {
+      "component": "FP8 blockwise scaled GEMM (N=7168, K=2048)",
+      "higher_is_better": true,
+      "measurements": {
+        "batch_size=1": 16.434028115071044,
+        "batch_size=16": 7.6741962048508965,
+        "batch_size=8": 7.688071813669291
+      },
+      "metric": "GB/s",
+      "tags": ["fp8", "gemm"]
+    },
+    "fp8_gemm": {
+      "component": "FP8 scaled GEMM, bf16 out (N=4096, K=7168)",
+      "higher_is_better": true,
+      "measurements": {
+        "batch_size=1": null,
+        "batch_size=16": null,
+        "batch_size=8": null
+      },
+      "metric": "GB/s",
+      "tags": ["fp8", "gemm"]
+    },
+    "moe_align_block_size": {
+      "component": "MoE align block size (256 experts, top-8)",
+      "higher_is_better": false,
+      "measurements": {
+        "num_tokens=1024,num_experts=256,topk=8": 14.098293892371611,
+        "num_tokens=128,num_experts=256,topk=8": 11.798325435135716,
+        "num_tokens=4096,num_experts=256,topk=8": 24.22649574279785
+      },
+      "metric": "us",
+      "tags": ["moe", "align"]
+    },
+    "moe_fused_gate": {
+      "component": "MoE fused gate + grouped top-k selector",
+      "higher_is_better": false,
+      "measurements": {
+        "seq_length=5000": 27.126144546972935
+      },
+      "metric": "us",
+      "tags": ["moe", "gate"]
+    },
+    "moe_topk_sigmoid": {
+      "component": "MoE top-k sigmoid routing (256 experts, top-8)",
+      "higher_is_better": false,
+      "measurements": {
+        "num_tokens=128,num_experts=256,topk=8": 4.726670991879302,
+        "num_tokens=4096,num_experts=256,topk=8": 11.167337976653
+      },
+      "metric": "us",
+      "tags": ["moe", "topk"]
+    },
+    "moe_topk_softmax": {
+      "component": "MoE top-k softmax routing (256 experts, top-8)",
+      "higher_is_better": false,
+      "measurements": {
+        "num_tokens=128,num_experts=256,topk=8": 3.978029783092328,
+        "num_tokens=4096,num_experts=256,topk=8": 8.510400097945642
+      },
+      "metric": "us",
+      "tags": ["moe", "topk"]
+    },
+    "per_tensor_quant_fp8": {
+      "component": "FP8 per-tensor dynamic quant",
+      "higher_is_better": false,
+      "measurements": {
+        "batch_size=16,seq_len=512": 58.10801370847271,
+        "batch_size=64,seq_len=2048": 1352.0418802897134
+      },
+      "metric": "us",
+      "tags": ["fp8", "quant"]
+    },
+    "per_token_group_quant_8bit": {
+      "component": "FP8 blockwise per-token-group quant (blockwise GEMM input)",
+      "higher_is_better": false,
+      "measurements": {
+        "num_tokens=6144,hidden_dim=2048,group_size=128,num_ranks=48,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': True, 'masked_layout_mode': 'balanced'}": null,
+        "num_tokens=6144,hidden_dim=2048,group_size=128,num_ranks=48,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': True, 'masked_layout_mode': 'extreme'}": null,
+        "num_tokens=6144,hidden_dim=2048,group_size=128,num_ranks=48,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': True, 'masked_layout_mode': 'imbalanced'}": null,
+        "num_tokens=6144,hidden_dim=2048,group_size=128,num_ranks=48,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': True, 'masked_layout_mode': None}": null,
+        "num_tokens=768,hidden_dim=1536,group_size=128,num_ranks=None,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': False, 'masked_layout_mode': None}": null,
+        "num_tokens=768,hidden_dim=16384,group_size=128,num_ranks=None,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': False, 'masked_layout_mode': None}": null,
+        "num_tokens=768,hidden_dim=7168,group_size=128,num_ranks=None,dst_dtype=torch.float8_e4m3fn,flags={'column_major_scales': True, 'scale_tma_aligned': True, 'scale_ue8m0': True, 'fuse_silu_and_mul': False, 'masked_layout_mode': None}": null
+      },
+      "metric": "us",
+      "tags": ["fp8", "quant"]
+    },
+    "per_token_quant_fp8": {
+      "component": "FP8 per-token dynamic quant",
+      "higher_is_better": false,
+      "measurements": {
+        "batch_size=16,seq_len=256,hidden_dim=2048": 12.33289452160106,
+        "batch_size=64,seq_len=512,hidden_dim=4096": 165.36260262513773
+      },
+      "metric": "us",
+      "tags": ["fp8", "quant"]
+    }
+  },
+  "meta": {
+    "commit": "cf8dbf44d9",
+    "compute_capability": "10.0",
+    "device_name": "NVIDIA B200",
+    "generated_at_unix": 1781487949,
+    "repeat": 5,
+    "skipped_cases": []
+  },
+  "schema_version": 1,
+  "tolerance": 0.05
+}
